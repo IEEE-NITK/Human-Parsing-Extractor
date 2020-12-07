@@ -73,7 +73,7 @@ class InceptionBlockA(torch.nn.Module):
         return output
 
 
-class InceptionV3(torch.nn.Module):
+class InceptionModel(torch.nn.Module):
     def __init__(self):
         super().__init__()
         # Stage 1 ((Conv -> MaxPool -> BatchNorm) x 2)
@@ -171,7 +171,7 @@ if __name__ == '__main__':
 
     # Model Instance
     torch.manual_seed(0)
-    net = InceptionV3()
+    net = InceptionModel()
     net.train(train_set, EPOCHS, LEARNING_RATE, VERBOSE)
 
     train_accuracy = net.calculate_accuracy(train_set)
