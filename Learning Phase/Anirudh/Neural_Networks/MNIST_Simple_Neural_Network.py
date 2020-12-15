@@ -5,7 +5,6 @@ from torchvision import transforms, datasets
 import matplotlib.pyplot as plt
 
 # Const Variables
-FILE_NAME = "diabetes.csv"
 N_FEATURES = 28 * 28
 EPOCHS = 100
 LEARNING_RATE = 0.01
@@ -29,18 +28,12 @@ class Net(torch.nn.Module):
         super().__init__()
         self.fc1 = torch.nn.Linear(n_features, 64)
         self.fc2 = torch.nn.Linear(64, 16)
-        # self.fc3 = torch.nn.Linear(25, 16)
-        # self.fc4 = torch.nn.Linear(16, 16)
-        # self.fc5 = torch.nn.Linear(16, 16)
-        self.fc6 = torch.nn.Linear(16, 10)
+        self.fc3 = torch.nn.Linear(16, 10)
 
     def forward(self, X):
         X = torch.relu(self.fc1(X))
         X = torch.relu(self.fc2(X))
-        # X = torch.relu(self.fc3(X))
-        # X = torch.relu(self.fc4(X))
-        # X = torch.relu(self.fc5(X))
-        X = torch.log_softmax(self.fc6(X), dim = 1)
+        X = torch.log_softmax(self.fc3(X), dim = 1)
 
         return X
 
@@ -87,23 +80,23 @@ class Net(torch.nn.Module):
             if epoch % (EPOCHS // verbose) == 0:
                 print(f"Epoch : {epoch} | loss : {round(loss.item(), 5)}")
 
-        if epoch % (EPOCHS // verbose) == 0:
-            print(f"Epoch : {epoch} | loss : {round(loss.item(), 5)}")
-        
-# Import Data
-train_set, test_set = import_data()
+        print(f"Epoch : {epoch} | loss : {round(loss.item(), 5)}")
+    
 
-# Model Instance
-torch.manual_seed(0)
+if __name__ == '__main__':
+    # Import Data
+    train_set, test_set = import_data()
 
-net = Net(N_FEATURES)
-net.train(train_set, EPOCHS, LEARNING_RATE, VERBOSE)
+    # Model Instance
+    torch.manual_seed(0)
+    net = Net(N_FEATURES)
+    net.train(train_set, EPOCHS, LEARNING_RATE, VERBOSE)
 
-train_accuracy = net.calculate_accuracy(train_set)
-print(f"Train accuracy after {EPOCHS} epochs : {round(train_accuracy)}")
+    train_accuracy = net.calculate_accuracy(train_set)
+    print(f"Train accuracy after {EPOCHS} epochs : {round(train_accuracy)}")
 
-test_accuracy = net.calculate_accuracy(test_set)
-print(f"Test accuracy after {EPOCHS} epochs : {round(test_accuracy)}")
+    test_accuracy = net.calculate_accuracy(test_set)
+    print(f"Test accuracy after {EPOCHS} epochs : {round(test_accuracy)}")
 
 
 

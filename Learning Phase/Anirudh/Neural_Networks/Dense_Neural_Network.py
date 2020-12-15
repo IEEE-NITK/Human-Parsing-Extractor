@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 
 # Const Variables
-EPOCHS = 50
+EPOCHS = 10
 LEARNING_RATE = 0.01
 VERBOSE = 10
 
@@ -27,34 +27,79 @@ def plot_image(image):
     plt.show()
 
 
-class Net(torch.nn.Module):
-    def __init__(self):
+class DenseBlock(torch.nn.Module):
+    def __init__(self, n_channels, f=3, stride=1, padding=1):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=5)
-        self.mp1 = nn.MaxPool2d(2)
+        self.conv1 = nn.Conv2d(n_channels, n_channels, kernel_size=f, stride=stride, padding=padding)
+        self.bn1 = nn.BatchNorm2d(n_channels)
 
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=5)
-        self.mp2 = nn.MaxPool2d(2)
+        self.conv2 = nn.Conv2d(n_channels, n_channels, kernel_size=f, stride=stride, padding=padding)
+        self.bn2 = nn.BatchNorm2d(n_channels)
 
-        self.fc1 = nn.Linear(1024, 64);
-        self.fc2 = nn.Linear(64, 10);
+        self.conv3 = nn.Conv2d(n_channels, n_channels, kernel_size=f, stride=stride, padding=padding)
+        self.bn3 = nn.BatchNorm2d(n_channels)
 
     def forward(self, X):
-        training_examples = X.size(0)
+        X_in = X # Storing input X
 
+        # Layer 1
         X = self.conv1(X)
-        X = self.mp1(X)
-        X = torch.relu(X);
-
-        X = self.conv2(X)
-        X = self.mp2(X)
-        X = torch.relu(X);
-
-        X = X.view(training_examples, -1)
-        X = self.fc1(X)
+        X = self.bn1(X)
+        X_layer1 = X # Storing Layer 1 output
+        X = X + X_in # Dense Connection 1
         X = torch.relu(X)
 
-        X = self.fc2(X)
+        # Layer 2
+        X = self.conv2(X)
+        X = self.bn2(X)
+        X_layer2 = X # Storing Layer 2 output
+        X = X + X_in + X_layer1 # Dense Connection 2
+        X = torch.relu(X)
+
+        # Layer 3
+        X = self.conv3(X)
+        X = self.bn3(X)
+        X = X + X_in + X_layer1 + X_layer2 # Dense Connection 3
+        X = torch.relu(X)
+
+        return X
+
+class DenseNet(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        # Stage 1
+        self.stage1_conv1 = nn.Conv2d(1, 64, kernel_size=5)
+        self.stage1_mp1 = nn.MaxPool2d(2)
+
+        # Stage 2 (2 x DenseBlock + 1 x MaxPooling)
+        self.stage2_db1 = DenseBlock(64, 3)
+        self.stage2_db2 = DenseBlock(64, 3)
+        self.mp = nn.MaxPool2d(2)
+
+        # Stage 3
+        self.stage3_fc1 = nn.Linear(2304, 256);
+        self.stage3_fc2= nn.Linear(256, 10);
+
+    def forward(self, X):
+        training_examples = X.size(0) # Stored for flattening later
+
+        # Stage 1
+        X = self.stage1_conv1(X)
+        X = self.stage1_mp1(X)
+        X = torch.relu(X);
+
+        # Stage 2 (2 x DenseBlock + 1 x MaxPooling)
+        X = self.stage2_db1(X)
+        X = self.stage2_db2(X)
+        X = self.mp(X)
+        X = torch.relu(X);
+
+        # Stage 3
+        X = X.view(training_examples, -1)
+        X = self.stage3_fc1(X)
+        X = torch.relu(X)
+        X = self.stage3_fc2(X)
         X = torch.log_softmax(X, dim = 1)
 
         return X
@@ -112,13 +157,13 @@ if __name__ == '__main__':
 
     # Model Instance
     torch.manual_seed(0)
-    net = Net()
-    net.train(train_set, EPOCHS, LEARNING_RATE, VERBOSE)
+    densenet = DenseNet()
+    densenet.train(train_set, EPOCHS, LEARNING_RATE, VERBOSE)
 
-    train_accuracy = net.calculate_accuracy(train_set)
+    train_accuracy = densenet.calculate_accuracy(train_set)
     print(f"Train accuracy after {EPOCHS} epochs : {round(train_accuracy, 4)}")
 
-    test_accuracy = net.calculate_accuracy(test_set)
+    test_accuracy = densenet.calculate_accuracy(test_set)
     print(f"Test accuracy after {EPOCHS} epochs : {round(test_accuracy, 4)}")
 
 
